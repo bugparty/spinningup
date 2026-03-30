@@ -2,9 +2,8 @@ from os.path import join, dirname, realpath
 from setuptools import setup
 import sys
 
-assert sys.version_info.major == 3 and sys.version_info.minor >= 6, \
-    "The Spinning Up repo is designed to work with Python 3.6 and greater." \
-    + "Please install it before proceeding."
+assert sys.version_info.major == 3 and sys.version_info.minor >= 10, \
+    "This patched version of Spinning Up requires Python 3.10 or greater."
 
 with open(join("spinup", "version.py")) as version_file:
     exec(version_file.read())
@@ -15,11 +14,11 @@ setup(
     version=__version__,#'0.1',
     install_requires=[
         'cloudpickle',
-        'gym[atari,box2d,classic_control]~=0.15.3',
+        'gymnasium[classic-control,box2d]>=1.2.0',
         'ipython',
         'joblib',
         'matplotlib',
-        # 'mpi4py',
+        'mpi4py',
         'numpy',
         'pandas',
         'pytest',
