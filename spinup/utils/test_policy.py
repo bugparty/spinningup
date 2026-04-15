@@ -43,7 +43,25 @@ def load_policy_and_env(fpath, itr='last', deterministic=False, render=False):
                 matches = sorted([k for k, v in gym.envs.registry.items()
                                    if cls_name in str(v.entry_point)])
                 assert matches, f"Could not find a registered env matching {cls_name}"
-                env_id = matches[-1]  # pick highest version
+                # Filter by continuous/discrete to pick the right variant
+                is_continuous = getattr(env.unwrapped, 'continuous', False)
+                env_id = None
+                for match in reversed(matches):  # Start from highest version
+                    # Check if this match is the right type (continuous vs discrete)
+                    # by looking at the environment ID pattern
+                    if is_continuous:
+                        # For continuous, prefer envs with "Continuous" in the name
+                        if 'Continuous' in match:
+                            env_id = match
+                            break
+                    else:
+                        # For discrete, prefer envs WITHOUT "Continuous" in the name
+                        if 'Continuous' not in match:
+                            env_id = match
+                            break
+                # Fallback to last match if no perfect match found
+                if env_id is None:
+                    env_id = matches[-1]
             env = gym.make(env_id, render_mode='human')
     except Exception as e:
         print(f"Warning: could not load environment ({e})")

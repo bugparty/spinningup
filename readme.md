@@ -2,7 +2,7 @@
 ### The original repository can be found [here](https://github.com/openai/spinningup)
 
 This fork is intended to be an up to date version of the original repository, with the following changes:
-1. The code has been updated to be compatible with Python 3.9
+1. The code has been updated to be compatible with Python 3.13
 2. We only have support for PyTorch and removed support for Tensorflow.
 3. We updated readme files and other documentation to be more accessible for beginners.
 
@@ -10,7 +10,7 @@ Installation
 ------------
 To install the package, run the following command in the root directory of the repository:
 ```
-conda create -n spinningup python=3.9
+conda create -n spinningup python=3.13
 conda activate spinningup
 
 git clone https://github.com/openai/spinningup.git
