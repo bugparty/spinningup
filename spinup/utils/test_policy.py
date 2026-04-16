@@ -30,6 +30,7 @@ def load_policy_and_env(fpath, itr='last', deterministic=False, render=False):
     # (sometimes this will fail because the environment could not be pickled)
     try:
         import gymnasium as gym
+        from gymnasium.spaces import Box
         state = joblib.load(osp.join(fpath, 'vars'+itr+'.pkl'))
         env = state['env']
         # gymnasium requires render_mode to be set at creation time;
@@ -43,23 +44,32 @@ def load_policy_and_env(fpath, itr='last', deterministic=False, render=False):
                 matches = sorted([k for k, v in gym.envs.registry.items()
                                    if cls_name in str(v.entry_point)])
                 assert matches, f"Could not find a registered env matching {cls_name}"
-                # Filter by continuous/discrete to pick the right variant
-                is_continuous = getattr(env.unwrapped, 'continuous', False)
+                # Prefer candidates whose action space matches the loaded env.
+                target_is_continuous = isinstance(env.action_space, Box)
+
+                def candidate_matches_action_space(match):
+                    try:
+                        spec = gym.spec(match)
+                        registered_action_space = getattr(spec, 'action_space', None)
+                        if registered_action_space is not None:
+                            candidate_is_continuous = isinstance(registered_action_space, Box)
+                            return candidate_is_continuous == target_is_continuous
+
+                        candidate_env = gym.make(match)
+                        try:
+                            candidate_is_continuous = isinstance(candidate_env.action_space, Box)
+                            return candidate_is_continuous == target_is_continuous
+                        finally:
+                            candidate_env.close()
+                    except Exception:
+                        return False
+
                 env_id = None
                 for match in reversed(matches):  # Start from highest version
-                    # Check if this match is the right type (continuous vs discrete)
-                    # by looking at the environment ID pattern
-                    if is_continuous:
-                        # For continuous, prefer envs with "Continuous" in the name
-                        if 'Continuous' in match:
-                            env_id = match
-                            break
-                    else:
-                        # For discrete, prefer envs WITHOUT "Continuous" in the name
-                        if 'Continuous' not in match:
-                            env_id = match
-                            break
-                # Fallback to last match if no perfect match found
+                    if candidate_matches_action_space(match):
+                        env_id = match
+                        break
+                # Fallback to last match if no action-space match was found.
                 if env_id is None:
                     env_id = matches[-1]
             env = gym.make(env_id, render_mode='human')
